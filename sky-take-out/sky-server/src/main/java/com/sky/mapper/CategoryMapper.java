@@ -23,6 +23,6 @@ public interface CategoryMapper {
     @Delete("delete from sky_take_out.category where id = #{id}")
     void delete(Long id);
 
-    @Select("select * from sky_take_out.category where type = #{type}")
+
     List<Category> listResult(Integer type);
 }
