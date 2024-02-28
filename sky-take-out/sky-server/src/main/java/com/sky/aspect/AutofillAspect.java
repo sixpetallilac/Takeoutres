@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 @Component
 public class AutofillAspect {
     /**
-     * pointcut切入点
+     * pointcut切入点位置、注解声明
      */
     @Pointcut("execution(* com.sky.mapper.*.*(..)) && @annotation(com.sky.annotation.AutoFill)")
     public void autoFillPointCut(){}
@@ -35,34 +35,34 @@ public class AutofillAspect {
     @Before("autoFillPointCut()")
     public void autoFill(JoinPoint joinPoint){
         log.info("开始进行公共字段的自动填充---------------");
-        //拦截方法
+        //拦截方法 通过反射获得注解，获得注解中的枚举方法
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         AutoFill annotation = signature.getMethod().getAnnotation(AutoFill.class);
         OperationType value = annotation.value();
-        //拦截方法参数
+        //拦截反射的方法参数
         Object[] args = joinPoint.getArgs();
         if (args == null || args.length == 0){
             return;
         }
-        //参数赋值
+        //参数记录
         Object entity = args[0];
 
         //设置自动填充的数值
         LocalDateTime now = LocalDateTime.now();
         Long currentId = BaseContext.getCurrentId();
 
-        //判断枚举
+        //判断枚举，逻辑判断自动赋值
         if(OperationType.INSERT == value){
             try {
                 Method setUpdateUser = entity.getClass().getDeclaredMethod(AutoFillConstant.SET_CREATE_USER,Long.class);
                 Method setUpdateTime = entity.getClass().getDeclaredMethod(AutoFillConstant.SET_UPDATE_TIME, LocalDateTime.class);
                 Method setCreateUser = entity.getClass().getDeclaredMethod(AutoFillConstant.SET_UPDATE_USER, Long.class);
-                Method setCreateTime = entity.getClass().getDeclaredMethod(AutoFillConstant.SET_CREATE_USER, LocalDateTime.class);
+                Method setCreateTime = entity.getClass().getDeclaredMethod(AutoFillConstant.SET_CREATE_TIME, LocalDateTime.class);
 
-                setCreateTime.invoke(now);
-                setCreateUser.invoke(currentId);
-                setUpdateTime.invoke(now);
-                setUpdateUser.invoke(currentId);
+                setCreateTime.invoke(entity, now);
+                setCreateUser.invoke(entity, currentId);
+                setUpdateTime.invoke(entity, now);
+                setUpdateUser.invoke(entity, currentId);
 
 
             } catch (Exception e) {
