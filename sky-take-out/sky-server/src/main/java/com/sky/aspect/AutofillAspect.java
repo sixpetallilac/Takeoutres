@@ -73,8 +73,8 @@ public class AutofillAspect {
                 Method setUpdateUser = entity.getClass().getDeclaredMethod(AutoFillConstant.SET_CREATE_USER,Long.class);
                 Method setUpdateTime = entity.getClass().getDeclaredMethod(AutoFillConstant.SET_UPDATE_TIME, LocalDateTime.class);
 
-                setUpdateTime.invoke(now);
-                setUpdateUser.invoke(currentId);
+                setUpdateTime.invoke(entity, now);
+                setUpdateUser.invoke(entity, currentId);
 
             } catch (Exception e) {
                 throw new RuntimeException(e);
