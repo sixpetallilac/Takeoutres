@@ -40,12 +40,30 @@
                 and d.name like concat('%',#{name},'%')
             </if>
             <if test="categoryId != null">
-                and d.category_id like concat('%',#{categoryId},'%')
+                and d.category_id = #{categoryId}
             </if>
             <if test="status != null">
-                and d.status like concat('%',#{status},'%')
+                and d.status = #{status}
             </if>
         </where>
         order by d.create_time desc
+    </select>
+    <select id="getByCategoryId" resultType="Dish" parameterType="dish">
+        select * from dish
+        <where>
+            <if test="name != null">
+                and name like concat('%',#{name},'%')
+            </if>
+            <if test="categoryId != null">
+                and category_id = #{categoryId}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+    <select id="getByDishIdFromSetmealDish" resultType="com.sky.entity.Dish">
+        select d.* from dish d left outer join setmeal_dish s on s.dish_id = d.id
     </select>
 </mapper>
