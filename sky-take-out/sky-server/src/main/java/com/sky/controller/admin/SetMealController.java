@@ -68,7 +68,6 @@ public class SetMealController {
     @ApiOperation("修改套餐")
     public Result update(@RequestBody SetmealDTO setmealDTO){
         log.info("修改套餐{}",setmealDTO);
-        //todo mapper not ready
         setMealService.update(setmealDTO);
         return Result.success();
     }

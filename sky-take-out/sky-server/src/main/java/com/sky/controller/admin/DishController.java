@@ -97,4 +97,10 @@ public class DishController {
         List<Dish> byCategoryId = dishService.getByCategoryId(categoryId);
         return Result.success(byCategoryId);
     }
+    @PostMapping("/status/{status}")
+    public Result setStatus(@PathVariable Integer status, Long id){
+        log.info("set status{},id{}",status,id);
+        dishService.setStatus(status,id);
+        return Result.success();
+    }
 }
