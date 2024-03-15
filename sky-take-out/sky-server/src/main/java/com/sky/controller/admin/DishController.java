@@ -14,17 +14,22 @@ import io.swagger.models.auth.In;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @Slf4j
 @RequestMapping("/admin/dish")
 @Api(tags = "菜品相关接口")
 public class DishController {
+    private static final String DISH_ID = "dish_id ";
     @Autowired
     private DishService dishService;
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     /**
      * 新增菜品
@@ -38,6 +43,9 @@ public class DishController {
         dishService.saveWithFlavor(dishDTO);
 
 
+        //清理缓存数据
+        Long l = redisCacheDel(DISH_ID + dishDTO.getCategoryId());
+        log.info("redis del:{}",l);
         return Result.success();
     }
 
@@ -64,6 +72,8 @@ public class DishController {
     public Result delete(@RequestParam List<Long> ids){
         log.info("批量删除菜品");
         dishService.delete(ids);
+        Long l = redisCacheDel(DISH_ID + "*");
+        log.info("redis del:{}",l);
         return Result.success();
     }
 
@@ -81,7 +91,9 @@ public class DishController {
         log.info("修改菜品{}",dishDTO);
 
         dishService.update(dishDTO);
-
+        //cacheDel
+        Long l = redisCacheDel(DISH_ID + dishDTO.getCategoryId());
+        log.info("redis del:{}",l);
         return Result.success();
     }
 
@@ -102,5 +114,11 @@ public class DishController {
         log.info("set status{},id{}",status,id);
         dishService.setStatus(status,id);
         return Result.success();
+    }
+    private Long redisCacheDel(String keys){
+        Set setKeys = redisTemplate.keys(keys);
+        Long delete = redisTemplate.delete(setKeys);
+        log.info("---------------------redis delete:{}",delete);
+        return delete;
     }
 }
