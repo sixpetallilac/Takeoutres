@@ -11,7 +11,10 @@ import com.sky.mapper.ShoppingCartMapper;
 import com.sky.service.ShoppingCartService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,8 +28,13 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
     private DishMapper dishMapper;
     @Autowired
     private SetmealMapper setmealMapper;
+
+    /**
+     * add cart
+     * @param shoppingCartDTO
+     */
     @Override
-    public void add(ShoppingCartDTO shoppingCartDTO) {
+    public void add(@RequestBody ShoppingCartDTO shoppingCartDTO) {
         //商品null判断
         ShoppingCart shoppingCart = new ShoppingCart();
         BeanUtils.copyProperties(shoppingCartDTO,shoppingCart);
@@ -63,5 +71,52 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
             shoppingCart.setCreateTime(LocalDateTime.now());
             shoppingCartMapper.insert(shoppingCart);
         }
+    }
+
+    /**
+     * list cart
+     * @return
+     */
+    @Override
+    public List<ShoppingCart> list() {
+        Long currentId = BaseContext.getCurrentId();
+        ShoppingCart shoppingCart = ShoppingCart.builder()
+                        .userId(currentId)
+                        .build();
+        List<ShoppingCart> list = shoppingCartMapper.list(shoppingCart);
+        return list;
+    }
+
+    /**
+     * clean cart
+     */
+    @Override
+    public void cleanShoppingCart() {
+        Long currentId = BaseContext.getCurrentId();
+        shoppingCartMapper.clean(currentId);
+    }
+
+    @Override
+    public void delOne(@RequestBody ShoppingCartDTO shoppingCartDTO) {
+        Long currentId = BaseContext.getCurrentId();
+        ShoppingCart shoppingCart = ShoppingCart.builder()
+                        .dishId(shoppingCartDTO.getDishId())
+                        .setmealId(shoppingCartDTO.getSetmealId())
+                        .dishFlavor(shoppingCartDTO.getDishFlavor())
+                        .userId(currentId)
+                        .build();
+        //查询 = 1 else delete
+        List<ShoppingCart> list = shoppingCartMapper.list(shoppingCart);
+        list.forEach((cart)->{
+            Integer number = cart.getNumber();
+            if (number > 1){
+                cart.setNumber(number - 1);
+                shoppingCartMapper.update(cart);
+            } else {
+                shoppingCartMapper.delOne(cart);
+            }
+        });
+
+
     }
 }
