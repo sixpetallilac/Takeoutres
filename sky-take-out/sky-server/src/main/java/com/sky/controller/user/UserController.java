@@ -34,6 +34,7 @@ public class UserController {
     public Result<UserLoginVO> login(@RequestBody UserLoginDTO userLoginDTO){
         log.info("微信用户登录：{}", userLoginDTO.getCode());
         User user = userService.userLogin(userLoginDTO);
+
         //map中存放user键值对，创建jwt token
         Map<String,Object> claim = new HashMap();
         claim.put(JwtClaimsConstant.USER_ID,user.getId());
