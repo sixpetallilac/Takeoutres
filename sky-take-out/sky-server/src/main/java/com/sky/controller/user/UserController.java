@@ -31,7 +31,7 @@ public class UserController {
     private JwtProperties jwtProperties;
     @PostMapping("/login")
     @ApiOperation("用户登录接口")
-    public Result<UserLoginVO> login(@RequestBody UserLoginDTO userLoginDTO){
+    public Result<UserLoginVO> login(@RequestBody UserLoginDTO userLoginDTO){//openid
         log.info("微信用户登录：{}", userLoginDTO.getCode());
         User user = userService.userLogin(userLoginDTO);
 
