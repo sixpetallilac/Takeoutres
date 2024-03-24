@@ -25,4 +25,9 @@ public interface ShoppingCartMapper {
 
 
     void delOne(ShoppingCart shoppingCart);
+
+    /**
+     * ‘再买一瓶’
+     */
+    void insertBatch(List<ShoppingCart> carts);
 }

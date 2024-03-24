@@ -19,6 +19,8 @@ import com.sky.utils.WeChatPayUtil;
 import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
+import lombok.extern.slf4j.Slf4j;
+import org.aspectj.weaver.ast.Or;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -28,8 +30,10 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class OrderServiceImpl implements OrderService {
 
     @Autowired
@@ -178,6 +182,11 @@ public class OrderServiceImpl implements OrderService {
         return new PageResult(page.getTotal(),list);
     }
 
+    /**
+     * 查询订单详情
+     * @param id
+     * @return
+     */
     @Override
     public OrderVO orderDetail(Long id) {
         //ordervo extends order 所以需要查询一下order
@@ -188,5 +197,68 @@ public class OrderServiceImpl implements OrderService {
         BeanUtils.copyProperties(orders,orderVO);
         orderVO.setOrderDetailList(details);
         return orderVO;
+    }
+
+    /**
+     * 取消订单
+     * @param orderId
+     * @throws Exception
+     */
+    @Override
+    public void cancelOrder(Long orderId) throws Exception {
+        //status订单状态 1待付款 2待接单 3已接单 4派送中 5已完成 6已取消 7退款
+        //payStatus支付状态 0未支付 1已支付 2退款
+//        - 待支付和待接单状态下，用户可直接取消订单 if status2 && paystatus 0 mapperupdate
+//                - 商家已接单状态下，用户取消订单需电话沟通商家 if 3
+//                - 派送中状态下，用户取消订单需电话沟通商家
+//                - 如果在待接单状态下取消订单，需要给用户退款
+//                - 取消订单后需要将订单状态修改为“已取消”
+        //查询
+        Orders orders = orderMapper.getById(orderId);
+        if (null == orders){
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+        //status判断
+        if (orders.getStatus()>2){
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+        Orders updateOrder = Orders.builder()
+                .id(orders.getId())
+                .status(Orders.CANCELLED)
+                .cancelReason("用户取消")
+                .cancelTime(LocalDateTime.now())
+                .build();
+        if (orders.getStatus().equals(Orders.TO_BE_CONFIRMED)){
+            //exception wechat 退款
+            updateOrder.setPayStatus(Orders.REFUND);
+            log.info("订单号{},订单价格{}",orders.getNumber(),orders.getAmount());
+            //没有商户号此处默认set执行paystatus
+//            weChatPayUtil.refund(
+//                    orders.getNumber(),
+//                    orders.getNumber(),
+//                    orders.getAmount(),
+//                    orders.getAmount());
+        }
+        orderMapper.update(updateOrder);
+    }
+
+    /**
+     * 再来一单
+     * @param orderId
+     */
+    @Override
+    public void repetition(Long orderId) {
+        //订单菜品相关都在detail中，detail和cart几乎相似，所以可以做转化，操作上也符合逻辑
+        Long userId = BaseContext.getCurrentId();
+        List<OrderDetail> details = orderDetailMapper.getByOrderId(orderId);
+        List<ShoppingCart> carts = details.stream().map(detail -> {
+            ShoppingCart shoppingCart = new ShoppingCart();
+            BeanUtils.copyProperties(detail, shoppingCart, "id");
+            shoppingCart.setUserId(userId);
+            shoppingCart.setCreateTime(LocalDateTime.now());
+            return shoppingCart;
+        }).collect(Collectors.toList());
+        //加进购物车
+        shoppingCartMapper.insertBatch(carts);
     }
 }
