@@ -3,9 +3,11 @@ package com.sky.mapper;
 import com.github.pagehelper.Page;
 import com.sky.dto.OrdersPageQueryDTO;
 import com.sky.entity.Orders;
+import io.swagger.models.auth.In;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
+import org.aspectj.weaver.ast.Or;
 
 @Mapper
 public interface OrderMapper {
@@ -38,4 +40,7 @@ public interface OrderMapper {
 
     @Select("select * from orders where id = #{id}")
     Orders getById(Long id);
+
+    @Select("select count(status) from orders where status = #{status}")
+    Integer statistics(Integer status);
 }

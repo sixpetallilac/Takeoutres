@@ -1,5 +1,6 @@
 package com.sky.vo;
 
+import com.sky.entity.AddressBook;
 import com.sky.entity.OrderDetail;
 import com.sky.entity.Orders;
 import lombok.AllArgsConstructor;

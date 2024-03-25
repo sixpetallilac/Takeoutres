@@ -7,4 +7,5 @@
         insert into user (openid, name, phone, sex, id_number, avatar, create_time)
         VALUES (#{openid},#{name},#{phone},#{sex},#{idNumber},#{avatar},#{createTime})
     </insert>
+
 </mapper>

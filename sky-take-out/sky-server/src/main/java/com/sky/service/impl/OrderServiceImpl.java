@@ -17,6 +17,7 @@ import com.sky.result.PageResult;
 import com.sky.service.OrderService;
 import com.sky.utils.WeChatPayUtil;
 import com.sky.vo.OrderPaymentVO;
+import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
 import lombok.extern.slf4j.Slf4j;
@@ -25,10 +26,12 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -76,6 +79,9 @@ public class OrderServiceImpl implements OrderService {
         orders.setNumber(String.valueOf(System.currentTimeMillis()));//订单号简单实现
         orders.setPhone(addressBook.getPhone());
         orders.setConsignee(addressBook.getConsignee());
+        //address->str
+        String address = addressBook.getProvinceName()+" "+addressBook.getCityName()+" "+addressBook.getDistrictName()+" "+addressBook.getDetail();
+        orders.setAddress(address);
         orders.setUserId(userId);
         //mapper
         orderMapper.insert(orders);
@@ -106,7 +112,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 订单支付
-     *
+     * 没有商户号，仅供参考
      * @param ordersPaymentDTO
      * @return
      */
@@ -261,4 +267,57 @@ public class OrderServiceImpl implements OrderService {
         //加进购物车
         shoppingCartMapper.insertBatch(carts);
     }
+
+    /**
+     * 订单条件查询
+     * @param ordersPageQueryDTO
+     * @return
+     */
+    @Override
+    public PageResult orderSearch(OrdersPageQueryDTO ordersPageQueryDTO) {
+        PageHelper.startPage(ordersPageQueryDTO.getPage(),ordersPageQueryDTO.getPageSize());
+        Page<Orders> page = orderMapper.pageQuery(ordersPageQueryDTO);
+        return new PageResult(page.getTotal(),resultList(page));
+    }
+    //basic ✔
+    //utils combine
+    private List<OrderVO> resultList(Page<Orders> page){
+        List<Orders> result = page.getResult();
+        //返回值为vo 需要新建arrlist
+        List<OrderVO> voList = new ArrayList<>();
+
+        if (!CollectionUtils.isEmpty(result)){//Collectionutils可以直接判断null那些问题，省工作量
+            for (Orders orders:result){
+                OrderVO orderVO = new OrderVO();
+                BeanUtils.copyProperties(orders,orderVO);
+                //查出来所有details，vo中的冗余字段赋值（把details名称数量信息混合在一个str中）
+                List<OrderDetail> details = orderDetailMapper.getByOrderId(orders.getId());
+                List<String> collect = details.stream().map(x -> {
+                    String orderDishes = x.getName() + "*" + x.getNumber();
+                    return orderDishes;
+                }).collect(Collectors.toList());
+                String orderDishes = String.join(",", collect);
+                //设置冗余字段值
+                orderVO.setOrderDishes(orderDishes);
+                //add至volist
+                voList.add(orderVO);
+            }
+        }
+        //vo作为返回值
+        return voList;
+    }
+
+    /**
+     * 各个状态的订单数量统计
+     * @return
+     */
+    @Override
+    public OrderStatisticsVO statistics() {
+        OrderStatisticsVO statisticsVO = new OrderStatisticsVO();
+        statisticsVO.setConfirmed(orderMapper.statistics(Orders.CONFIRMED));
+        statisticsVO.setToBeConfirmed(orderMapper.statistics(Orders.TO_BE_CONFIRMED));
+        statisticsVO.setDeliveryInProgress(orderMapper.statistics(Orders.DELIVERY_IN_PROGRESS));
+        return statisticsVO;
+    }
+
 }
