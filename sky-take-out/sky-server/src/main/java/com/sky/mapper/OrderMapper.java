@@ -9,6 +9,9 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 import org.aspectj.weaver.ast.Or;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 @Mapper
 public interface OrderMapper {
 
@@ -43,4 +46,7 @@ public interface OrderMapper {
 
     @Select("select count(status) from orders where status = #{status}")
     Integer statistics(Integer status);
+
+    @Select("select * from orders where status = #{status} and order_time < #{time}")
+    List<Orders> getByStatusAndOrderTime(Integer status, LocalDateTime time);
 }
