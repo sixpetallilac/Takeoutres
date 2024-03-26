@@ -44,6 +44,7 @@ public class OrderController {
      */
     @PutMapping("/payment")
     @ApiOperation("订单支付")
+    //没有商户号，临时凑合点支付默认数据库支付完成
     public Result<OrderPaymentVO> payment(@RequestBody OrdersPaymentDTO ordersPaymentDTO) throws Exception {
         log.info("订单支付：{}", ordersPaymentDTO);
         OrderPaymentVO orderPaymentVO = orderService.payment(ordersPaymentDTO);
@@ -95,8 +96,20 @@ public class OrderController {
      * @return
      */
     @PostMapping("/repetition/{id}")
+    @ApiOperation("再来一单")
     public Result repetition(@PathVariable("id") Long orderId){
         orderService.repetition(orderId);
+        return Result.success();
+    }
+
+    /**
+     * 一键催命
+     * @return
+     */
+    @GetMapping("/reminder/{id}")
+    @ApiOperation("催命")
+    public Result reminder(@PathVariable Long id){
+        orderService.reminder(id);
         return Result.success();
     }
 }
