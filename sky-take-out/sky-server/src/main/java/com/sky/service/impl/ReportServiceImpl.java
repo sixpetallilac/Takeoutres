@@ -174,9 +174,11 @@ public class ReportServiceImpl implements ReportService {
      * @return
      */
     public SalesTop10ReportVO salesTop10Report(LocalDate begin, LocalDate end) {
+        //时间不需要作为返回数据 无loop
         LocalDateTime start = LocalDateTime.of(begin, LocalTime.MIN);
         LocalDateTime ending = LocalDateTime.of(end, LocalTime.MAX);
 
+        //结果统一返回list, 拆分处理list方便后续StringUtils.join
         List<GoodsSalesDTO> goodsSalesDTOList = orderMapper.salesTop10Report(start, ending);
         List<String> names = goodsSalesDTOList.stream().map(GoodsSalesDTO::getName).collect(Collectors.toList());
         List<Integer> number = goodsSalesDTOList.stream().map(GoodsSalesDTO::getNumber).collect(Collectors.toList());
