@@ -1,12 +1,10 @@
 package com.sky.service.impl;
 
-import com.sky.dto.GoodsSalesDTO;
 import com.sky.entity.Orders;
 import com.sky.mapper.OrderMapper;
 import com.sky.mapper.UserMapper;
 import com.sky.service.ReportService;
 import com.sky.vo.OrderReportVO;
-import com.sky.vo.SalesTop10ReportVO;
 import com.sky.vo.TurnoverReportVO;
 import com.sky.vo.UserReportVO;
 import io.swagger.models.auth.In;
@@ -21,7 +19,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 public class ReportServiceImpl implements ReportService {
@@ -107,19 +104,13 @@ public class ReportServiceImpl implements ReportService {
                 .build();
     }
 
-    /**
-     * 订单统计
-     * @param begin
-     * @param end
-     * @return
-     */
+    @Override
     public OrderReportVO orderReport(LocalDate begin, LocalDate end) {
+        List<LocalDate> times = new ArrayList<>();
         //daily order count total
         List<Integer> orderCountList = new ArrayList<>();
         //validOrderCountList
         List<Integer> validOrderCountList = new ArrayList<>();
-
-        List<LocalDate> times = new ArrayList<>();
         times.add(begin);
         while (!begin.equals(end)){
             begin = begin.plusDays(1);
@@ -134,7 +125,7 @@ public class ReportServiceImpl implements ReportService {
             //查询区间有效订单数
             Integer validOrderCount = getOrderCount(start, ending, Orders.COMPLETED);
 
-            //塞入list 作为vo return
+            //塞入list
             orderCountList.add(orderCounts);
             validOrderCountList.add(validOrderCount);
         }
@@ -165,26 +156,6 @@ public class ReportServiceImpl implements ReportService {
         map.put("status", status);
         Integer result = orderMapper.countByMap(map);
         return result;
-    }
-
-    /**
-     * 销量前10统计
-     * @param begin
-     * @param end
-     * @return
-     */
-    public SalesTop10ReportVO salesTop10Report(LocalDate begin, LocalDate end) {
-        LocalDateTime start = LocalDateTime.of(begin, LocalTime.MIN);
-        LocalDateTime ending = LocalDateTime.of(end, LocalTime.MAX);
-
-        List<GoodsSalesDTO> goodsSalesDTOList = orderMapper.salesTop10Report(start, ending);
-        List<String> names = goodsSalesDTOList.stream().map(GoodsSalesDTO::getName).collect(Collectors.toList());
-        List<Integer> number = goodsSalesDTOList.stream().map(GoodsSalesDTO::getNumber).collect(Collectors.toList());
-
-        return SalesTop10ReportVO.builder()
-                .nameList(StringUtils.join(names,","))
-                .numberList(StringUtils.join(number,","))
-                .build();
     }
 
 }
