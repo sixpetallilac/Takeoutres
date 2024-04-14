@@ -14,6 +14,3 @@ sky:
     #    指定数据库 默认db0
     database: 10
 
-  wechat:
-    appid: wx8d0abefb974cfc91
-    secret: 2be54242e9ce6d44cd5a1450c9f3c0f0
