@@ -5,15 +5,20 @@ import com.sky.entity.Orders;
 import com.sky.mapper.OrderMapper;
 import com.sky.mapper.UserMapper;
 import com.sky.service.ReportService;
-import com.sky.vo.OrderReportVO;
-import com.sky.vo.SalesTop10ReportVO;
-import com.sky.vo.TurnoverReportVO;
-import com.sky.vo.UserReportVO;
+import com.sky.service.WorkspaceService;
+import com.sky.vo.*;
 import io.swagger.models.auth.In;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -29,7 +34,8 @@ public class ReportServiceImpl implements ReportService {
     private OrderMapper orderMapper;
     @Autowired
     private UserMapper userMapper;
-
+    @Autowired
+    private WorkspaceService workspaceService;
     /**
      * amount统计
      * @param begin
@@ -189,4 +195,66 @@ public class ReportServiceImpl implements ReportService {
                 .build();
     }
 
+    /**
+     * 倒出运营数据报表
+     * @param response
+     */
+    public void exportBusinessData(HttpServletResponse response) {
+        //查询->写入excel->输出流下载
+        //查询 30days
+        LocalDate begin = LocalDate.now().minusDays(30);
+        LocalDate end = LocalDate.now().minusDays(1);
+        BusinessDataVO businessData = workspaceService.getBusinessData(LocalDateTime.of(begin, LocalTime.MIN), LocalDateTime.of(end, LocalTime.MAX));
+
+        InputStream resourceAsStream = this.getClass().getClassLoader().getResourceAsStream("template/运营数据报表模板.xlsx");
+        //写入
+        try {
+            //基于模板创建excel
+            XSSFWorkbook excel = new XSSFWorkbook(resourceAsStream);
+            //excel 标签页名字
+            XSSFSheet sheet = excel.getSheet("sheet1");
+            //下标从0开始 第二行 第二个单元格（时间数据填充）
+            sheet.getRow(1).getCell(1).setCellValue("时间：" + begin + "至" + end);
+            //获得第四行
+            XSSFRow row = sheet.getRow(3);
+            //填充数据
+            row.getCell(2).setCellValue(businessData.getTurnover());
+            row.getCell(4).setCellValue(businessData.getOrderCompletionRate());
+            row.getCell(6).setCellValue(businessData.getNewUsers());
+            //第五行
+            XSSFRow row5 = sheet.getRow(4);
+            //填充数据
+            row5.getCell(2).setCellValue(businessData.getValidOrderCount());
+            row5.getCell(4).setCellValue(businessData.getUnitPrice());
+
+            //每日数据填充
+            for (int i = 0; i < 30; i++){
+                LocalDate date = begin.plusDays(i);
+                BusinessDataVO datas = workspaceService.getBusinessData(LocalDateTime.of(date, LocalTime.MIN), LocalDateTime.of(date, LocalTime.MAX));
+                //获得行数,填充数据
+                XSSFRow loopRow = sheet.getRow(7 + i);
+                loopRow.getCell(1).setCellValue(date.toString());
+                loopRow.getCell(2).setCellValue(datas.getTurnover());
+                loopRow.getCell(3).setCellValue(datas.getValidOrderCount());
+                loopRow.getCell(4).setCellValue(datas.getOrderCompletionRate());
+                loopRow.getCell(5).setCellValue(datas.getUnitPrice());
+                loopRow.getCell(6).setCellValue(datas.getNewUsers());
+
+            }
+
+
+            //下载
+            ServletOutputStream outputStream = response.getOutputStream();
+            excel.write(outputStream);
+            //关闭资源
+            outputStream.close();
+            excel.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+
+
+
+    }
 }
